@@ -3,10 +3,10 @@ const { ApolloServer } = require('apollo-server-express');
 const path = require('path');
 const db = require('./config/connection');
 const routes = require('./routes');
-const { typeDefs } = require('./src/typeDefs/typeDefs');
-const { resolvers } = require('./src/resolvers/resolvers');
-// find correct paths
+const { typeDefs, resolvers } = require('./schemas');
 
+
+const PORT = 3000;
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
@@ -30,7 +30,10 @@ server.start().then(() => {
 app.use(routes);
 
 db.once('open', () => {
-  console.log('Connected to the database.');
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
 });
+
 
 module.exports = app;

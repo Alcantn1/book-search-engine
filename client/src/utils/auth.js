@@ -1,74 +1,44 @@
-import decode from 'jwt-decode';
-import { ApolloLink } from 'apollo-link';
-import { onError } from 'apollo-link-error';
-import { createHttpLink } from 'apollo-link-http';
-import { setContext } from 'apollo-link-context';
-import { ApolloClient, InMemoryCache } from 'apollo-client';
-import { createBrowserHistory } from 'history';
-
-const history = createBrowserHistory();
+const decode = require('jwt-decode');
 
 class AuthService {
-  // ...
+  // get user data
+  getProfile() {
+    return decode(this.getToken());
+  }
 
-  // Get the authorization token from localStorage
-  getAuthorizationToken() {
+  // check if user's logged in
+  loggedIn() {
+    const token = this.getToken();
+    return !!token && !this.isTokenExpired(token);
+  }
+
+  // check if token is expired
+  isTokenExpired(token) {
+    try {
+      const decoded = decode(token);
+      if (decoded.exp < Date.now() / 1000) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (err) {
+      return false;
+    }
+  }
+
+  getToken() {
     return localStorage.getItem('id_token');
   }
 
-  // Create an Apollo client with the authorization token set in the request headers
-  createApolloClient() {
-    const httpLink = createHttpLink({
-      uri: 'YOUR_GRAPHQL_API_ENDPOINT',
-    });
-
-    const authLink = setContext((_, { headers }) => {
-      const token = this.getAuthorizationToken();
-      return {
-        headers: {
-          ...headers,
-          authorization: token ? `Bearer ${token}` : '',
-        },
-      };
-    });
-
-    const errorLink = onError(({ graphQLErrors, networkError }) => {
-      if (graphQLErrors) {
-        graphQLErrors.forEach(({ message, locations, path }) => {
-          console.error(
-            `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
-          );
-        });
-      }
-      if (networkError) {
-        console.error(`[Network error]: ${networkError}`);
-      }
-    });
-
-    return new ApolloClient({
-      link: ApolloLink.from([authLink, errorLink, httpLink]),
-      cache: new InMemoryCache(),
-    });
-  }
-
-  // ...
-
   login(idToken) {
     localStorage.setItem('id_token', idToken);
-    // Replace the following line with the appropriate route for your GraphQL API
-    const apolloClient = this.createApolloClient();
-    apolloClient.resetStore().then(() => {
-      history.replace('/');
-    });
+    window.location.assign('/');
   }
 
   logout() {
     localStorage.removeItem('id_token');
-    const apolloClient = this.createApolloClient();
-    apolloClient.resetStore().then(() => {
-      history.replace('/');
-    });
+    window.location.assign('/');
   }
 }
 
-export default new AuthService();
+module.exports = new AuthService();
